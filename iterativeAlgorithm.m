@@ -24,12 +24,18 @@ G0 = blockDiagSkewSym(p);
 H_hat = logm(Q*expm(G0)');
 H = projectToComp(H_hat,p);
 % run the algorithm
-for j = 1:10  % tolerance from last to current
+error = 1;
+tolerance = 0.001;
+while error > tolerance  % tolerance from last to current
     G_hat = logm(expm(H)'*Q);
     G = projectToWP(G_hat,p);
     H_hat = logm(Q*expm(G)');
     H = projectToComp(H_hat,p);
+    errorM = Q - expm(H)*expm(G); %error matrix
+    error = sqrt(0.5*trace(errorM'*errorM));
 end
+distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?
+distance = sqrt(0.5*trace(G'*G)) % ???
 
 
 % Questions:
