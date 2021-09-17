@@ -24,16 +24,11 @@ G0 = blockDiagSkewSym(p);
 H_hat = logm(Q*expm(G0)');
 H = projectToComp(H_hat,p);
 % run the algorithm
-d = 1;
-diff = 1;
-while diff > 0.0001  % tolerance from last to current
+for j = 1:10  % tolerance from last to current
     G_hat = logm(expm(H)'*Q);
     G = projectToWP(G_hat,p);
     H_hat = logm(Q*expm(G)');
     H = projectToComp(H_hat,p);
-    v = svd(H); % I don't know what I'm doing with SVD
-    diff = abs(sqrt(0.5*trace(H'*H))-d);
-    d = sqrt(0.5*trace(H'*H))
 end
 
 
