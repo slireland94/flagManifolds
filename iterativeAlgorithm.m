@@ -12,28 +12,38 @@ clc
 
 % what kind of flag do we have?
 p = [1,1,4];
-n = sum(p);
+testRun(p);
 
-% get our points in the flag (just representatives right now)
-Q1 = specialOrtho(n);
-Q2 = specialOrtho(n);
-Q = Q1'*Q2;
-% The goal here is to generate the Qis. To do this we have to 
-% manipulate pairs of rows by multiplying them by -1.
-count_rows = height(Q);
-count_columns = width(Q);
-Qi = zeros(count_rows,count_columns,2^(n-1));
-Qi(:,:,1) = Q;
+function [H] = testRun(p)
+
+    n = sum(p);
+    % get our points in the flag (just representatives right now)
+    Q1 = specialOrtho(n);
+    Q2 = specialOrtho(n);
+    Q = Q1'*Q2;
+    [H,G] = computeHG(Q,p);
+    disi = zeros(2^(n-1),1);
+    [Qi] = generateExcessQi(Q,n)
+    % The final change should multiply every column by 1 if
+    % the program works so the check is to see if this is just the 
+    % zero matrix.
+    Q + Qi(:,:,2^(n-1))
+    for i= 1: 2^(n-1)
+        disi(i) = sqrt(0.5*trace((Qi(:,:,i)-H)'*(Qi(:,:,i)-H)));
+    end
+    disi
+    
+end
 
 
 
-function [Qi] = generateExcessQi
+function [Qi] = generateExcessQi(Q,n)
     % This function generates all possible Qi's rather than good
     % representatives.
 
     count_rows = height(Q);
     count_columns = width(Q);
-    Qi = zeros(count_rows,count_columns,2^(n-1));
+    Qi   = zeros(count_rows,count_columns,2^(n-1));
     i = 1;
     Qi(:,:,i) = Q;
     nchoosek((0:3),3);
@@ -67,8 +77,8 @@ function [H,G] = computeHG(Q,p)
         errorM = Q - expm(H)*expm(G); %error matrix
         error = sqrt(0.5*trace(errorM'*errorM));
     end
-    distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?
-    distance = sqrt(0.5*trace(G'*G)) % ???
+    % distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?
+    % distance = sqrt(0.5*trace(G'*G)) % ???
 
 end
 % Questions:
