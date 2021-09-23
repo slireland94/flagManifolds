@@ -18,26 +18,59 @@ n = sum(p);
 Q1 = specialOrtho(n);
 Q2 = specialOrtho(n);
 Q = Q1'*Q2;
+% The goal here is to generate the Qis. To do this we have to 
+% manipulate pairs of rows by multiplying them by -1.
+count_rows = height(Q);
+count_columns = width(Q);
+Qi = zeros(count_rows,count_columns,2^(n-1));
+Qi(:,:,1) = Q;
 
-% initialize
-G0 = blockDiagSkewSym(p);
-H_hat = logm(Q*expm(G0)');
-H = projectToComp(H_hat,p);
-% run the algorithm
-error = 1;
-tolerance = 0.001;
-while error > tolerance  % tolerance from last to current
-    G_hat = logm(expm(H)'*Q);
-    G = projectToWP(G_hat,p);
-    H_hat = logm(Q*expm(G)');
-    H = projectToComp(H_hat,p);
-    errorM = Q - expm(H)*expm(G); %error matrix
-    error = sqrt(0.5*trace(errorM'*errorM));
+
+
+function [Qi] = generateExcessQi
+    % This function generates all possible Qi's rather than good
+    % representatives.
+
+    count_rows = height(Q);
+    count_columns = width(Q);
+    Qi = zeros(count_rows,count_columns,2^(n-1));
+    i = 1;
+    Qi(:,:,i) = Q;
+    nchoosek((0:3),3);
+    columns = (1:count_columns);
+
+    for j = 1:floor(count_columns/2)
+        C = nchoosek(columns,2*j);
+            for k =1:size(C)
+                i = i+1;
+                Qi(:,:,i) = Q;
+                Qi(:,C(k,:),i) = -Qi(:,C(k,:),i);
+            end
+    end
 end
-distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?
-distance = sqrt(0.5*trace(G'*G)) % ???
 
 
+
+function [H,G] = computeHG(Q,p)
+    % initialize
+    G0 = blockDiagSkewSym(p);
+    H_hat = logm(Q*expm(G0)');
+    H = projectToComp(H_hat,p);
+    % run the algorithm
+    error = 1;
+    tolerance = 0.001;
+    while error > tolerance  % tolerance from last to current
+        G_hat = logm(expm(H)'*Q);
+        G = projectToWP(G_hat,p);
+        H_hat = logm(Q*expm(G)');
+        H = projectToComp(H_hat,p);
+        errorM = Q - expm(H)*expm(G); %error matrix
+        error = sqrt(0.5*trace(errorM'*errorM));
+    end
+    distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?
+    distance = sqrt(0.5*trace(G'*G)) % ???
+
+end
 % Questions:
 % how to compute 'unique singular values' of H
 % distance = sqrt(lambda_1^2 + lambda_2^2)
