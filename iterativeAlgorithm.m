@@ -17,13 +17,20 @@ testRun(p);
 function [H] = testRun(p)
 
     n = sum(p);
+    
     % get our points in the flag (just representatives right now)
     Q1 = specialOrtho(n);
     Q2 = specialOrtho(n);
     Q = Q1'*Q2;
     [H,G] = computeHG(Q,p);
+    
+    
+    [Qi] = generateExcessQi(Q,n);
     disi = zeros(2^(n-1),1);
-    [Qi] = generateExcessQi(Q,n)
+    
+    d = length(p);
+    [QiShort] = generateQi(Q,p);
+    desiShort = zeros(2^(d-1),1);
     % The final change should multiply every column by 1 if
     % the program works so the check is to see if this is just the 
     % zero matrix.
@@ -31,11 +38,38 @@ function [H] = testRun(p)
     for i= 1: 2^(n-1)
         disi(i) = sqrt(0.5*trace((Qi(:,:,i)-H)'*(Qi(:,:,i)-H)));
     end
-    disi
     
+    
+    for i= 1: 2^(d-1)
+        disiShort(i) = sqrt(0.5*trace((QiShort(:,:,i)-H)'*(QiShort(:,:,i)-H)));
+    end
+    
+    
+    disi
+    min(disi)
+    min(disiShort)
 end
 
+function [QiShort] = generateQi(Q,p)
+    d = length(p);
+    pAlt = altSyntax(p);
+    count_rows = height(Q);
+    count_columns = width(Q);
+    QiShort = zeros(count_rows,count_columns,2^(d-1));
+    i = 1;
+    Qi(:,:,i) = Q;
+    nchoosek((0:3),3);
+    columns = (1:count_columns);
 
+    for j = 1:floor(d/2)
+        C = nchoosek(pAlt,2*j);
+            for k =1:size(C)
+                i = i+1;
+                Qi(:,:,i) = Q;
+                Qi(:,C(k,:),i) = -Qi(:,C(k,:),i);
+            end
+    end
+end
 
 function [Qi] = generateExcessQi(Q,n)
     % This function generates all possible Qi's rather than good
@@ -59,6 +93,12 @@ function [Qi] = generateExcessQi(Q,n)
     end
 end
 
+function [pAlt] =altSyntax(p)
+    pAlt = p;
+    for i = 2:length(p)
+        pAlt(i) = pAlt(i) + pAlt(i-1);
+    end
+end
 
 
 function [H,G] = computeHG(Q,p)
