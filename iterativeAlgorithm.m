@@ -1,4 +1,4 @@
-% Seth Ireland
+% Seth Ireland and Brian Collery 
 % 9.7.2021
 
 close all
@@ -26,29 +26,37 @@ function [H] = testRun(p)
     
     
     [Qi] = generateExcessQi(Q,n);
-    disi = zeros(2^(n-1),1);
+    %disi = zeros(2^(n-1),1);
+    disih = zeros(2^(n-1),1);
     
     d = length(p);
     [QiShort] = generateQi(Q,p);
-    desiShort = zeros(2^(d-1),1);
+    % desiShort = zeros(2^(d-1),1);
+    disiShorth = zeros(2^(d-1),1);
     % The final change should multiply every column by 1 if
     % the program works so the check is to see if this is just the 
     % zero matrix.
-    Q + Qi(:,:,2^(n-1))
+    % Q + Qi(:,:,2^(n-1))
     for i= 1: 2^(n-1)
         disi(i) = sqrt(0.5*trace((Qi(:,:,i)-H)'*(Qi(:,:,i)-H)));
+        [H,G] = computeHG(Qi(:,:,i),p);
+        disih(i) =  sqrt(0.5*(trace(H'*H)));
     end
+    
     
     
     for i= 1: 2^(d-1)
         disiShort(i) = sqrt(0.5*trace((QiShort(:,:,i)-H)'*(QiShort(:,:,i)-H)));
+        [H,G] = computeHG(QiShort(:,:,i),p);
+        disiShorth(i) =  sqrt(0.5*(trace(H'*H)));
     end
     
     
-    disi
-    min(disi)
-    min(disiShort)
+   
+    disiShorth
+    disih
 end
+
 
 function [QiShort] = generateQi(Q,p)
     d = length(p);
@@ -57,7 +65,7 @@ function [QiShort] = generateQi(Q,p)
     count_columns = width(Q);
     QiShort = zeros(count_rows,count_columns,2^(d-1));
     i = 1;
-    Qi(:,:,i) = Q;
+    QiShort(:,:,i) = Q;
     nchoosek((0:3),3);
     columns = (1:count_columns);
 
@@ -65,8 +73,8 @@ function [QiShort] = generateQi(Q,p)
         C = nchoosek(pAlt,2*j);
             for k =1:size(C)
                 i = i+1;
-                Qi(:,:,i) = Q;
-                Qi(:,C(k,:),i) = -Qi(:,C(k,:),i);
+                QiShort(:,:,i) = Q;
+                QiShort(:,C(k,:),i) = -QiShort(:,C(k,:),i);
             end
     end
 end
@@ -115,6 +123,7 @@ function [H,G] = computeHG(Q,p)
         H_hat = logm(Q*expm(G)');
         H = projectToComp(H_hat,p);
         errorM = Q - expm(H)*expm(G); %error matrix
+        % 
         error = sqrt(0.5*trace(errorM'*errorM));
     end
     % distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?
