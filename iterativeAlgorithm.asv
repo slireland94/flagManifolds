@@ -11,9 +11,11 @@ clc
 % flag manifold) will come later
 
 % what kind of flag do we have?
-p = [2,2,4];
-testRun(p)
+p = [2,2];
+%testRun(p);
 
+B = rand(sum(p));
+checkNegEig(B)
 
 
 function [dis] = testRun(p)
@@ -26,19 +28,32 @@ function [dis] = testRun(p)
     % Using the structure of the flag manifold
     d = length(p);
     [Qi] = generateQi(Q,p);
-    
     % desiShort = zeros(2^(d-1),1);
     dis = zeros(2^(d-1),1);
     eigenValuesQ = zeros(2^(d-1),n);
     % Looking at the distance with the flag manifold structure
     for i= 1: 2^(d-1)
         eigenValuesQ(i,:) = eig(Qi(:,:,i));
-        eigenValuesQ(i,:)
+        eigenValuesQ(i,:);
         [H,G] = computeHG(Qi(:,:,i),p);
         dis(i) =  sqrt(0.5*(trace(H'*H)));
     end
-    eigenValuesQ
+    eigenValuesQ;
 end
+
+
+% check if any eigenvalues of a matrix are negative
+function [TF] = checkNegEig(B,p)
+    l = length(B);
+    E = eig(B)
+    for j = 1:l
+        if im(E(j)) == 0 && re(E(j)) < 0
+            TF == 1 % B has a negative eigenvalue
+        else
+            TF == 0 % B has no negative eigenva
+end
+
+    
 
 
 % get representatives of [Q] using cover of flag manifold
@@ -117,6 +132,9 @@ end
 % Questions:
 % how to compute 'unique singular values' of H
 % distance = sqrt(lambda_1^2 + lambda_2^2)
+
+% checkLog checks to see if Q*expm(G0)' or expm(H)'*Q ever have negative
+% eigenvalues
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

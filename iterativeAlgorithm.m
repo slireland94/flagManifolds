@@ -11,8 +11,9 @@ clc
 % flag manifold) will come later
 
 % what kind of flag do we have?
-p = [2,2];
-testRun(p)
+p = [2,2,2];
+testRun(p);
+
 
 
 
@@ -26,7 +27,6 @@ function [dis] = testRun(p)
     % Using the structure of the flag manifold
     d = length(p);
     [Qi] = generateQi(Q,p);
-    
     % desiShort = zeros(2^(d-1),1);
     dis = zeros(2^(d-1),1);
     eigenValuesQ = zeros(2^(d-1),n);
@@ -39,6 +39,24 @@ function [dis] = testRun(p)
     end
     eigenValuesQ;
 end
+
+
+% check if any eigenvalues of a matrix are negative
+function [TF] = countNegEig(B,p)
+    l = length(B);
+    E = eig(B);
+    TF = 0;
+    for j = 1:l
+        if imag(E(j)) == 0 && real(E(j)) < 0
+            TF = TF + 1; % B has a negative eigenvalue
+        else
+            TF = TF; % B has no negative eigenvalues
+        end
+    end
+    
+end
+
+    
 
 
 % get representatives of [Q] using cover of flag manifold
@@ -100,11 +118,16 @@ function [H,G] = computeHG(Q,p)
     H = projectToComp(H_hat,p);
     % run the algorithm
     error = 1;
-    tolerance = 0.001;
+    tolerance = 0.01;
     while error > tolerance  % tolerance from last to current
+        if countNegEig(expm(H)'*Q,p) > 0 % if expm(H)'*Q has negative eigenvalues, then let's see it
+            expm(H)'*Q
+        end
         G_hat = logm(expm(H)'*Q);
         G = projectToWP(G_hat,p);
-        eig(Q*expm(G)')
+        if countNegEig(Q*expm(G)',p) > 0 % if Q*expm(G)' has negative eigenvalues, then let's see it
+            Q*expm(G)'
+        end
         H_hat = logm(Q*expm(G)');
         H = projectToComp(H_hat,p);
         errorM = Q - expm(H)*expm(G); %error matrix
@@ -118,6 +141,9 @@ end
 % Questions:
 % how to compute 'unique singular values' of H
 % distance = sqrt(lambda_1^2 + lambda_2^2)
+
+% checkLog checks to see if Q*expm(G0)' or expm(H)'*Q ever have negative
+% eigenvalues
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
