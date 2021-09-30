@@ -11,8 +11,10 @@ clc
 % flag manifold) will come later
 
 % what kind of flag do we have?
-p = [1,1,4];
+p = [2,4,4];
 testRun(p);
+
+
 
 function [H] = testRun(p)
 
@@ -23,38 +25,21 @@ function [H] = testRun(p)
     Q2 = specialOrtho(n);
     Q = Q1'*Q2;
     [H,G] = computeHG(Q,p);
-    
-    
-    [Qi] = generateExcessQi(Q,n);
-    %disi = zeros(2^(n-1),1);
-    disih = zeros(2^(n-1),1);
-    
+    % Using the structure of the flag manifold
     d = length(p);
-    [QiShort] = generateQi(Q,p);
+    [Qi] = generateQi(Q,p);
     % desiShort = zeros(2^(d-1),1);
-    disiShorth = zeros(2^(d-1),1);
-    % The final change should multiply every column by 1 if
-    % the program works so the check is to see if this is just the 
-    % zero matrix.
-    % Q + Qi(:,:,2^(n-1))
-    for i= 1: 2^(n-1)
-        disi(i) = sqrt(0.5*trace((Qi(:,:,i)-H)'*(Qi(:,:,i)-H)));
-        [H,G] = computeHG(Qi(:,:,i),p);
-        disih(i) =  sqrt(0.5*(trace(H'*H)));
-    end
-    
-    
-    
+    dis = zeros(2^(d-1),1);
+    eigShort = zeros(2^(d-1),n);
+    % Looking at the distance with the flag manifold structure
     for i= 1: 2^(d-1)
-        disiShort(i) = sqrt(0.5*trace((QiShort(:,:,i)-H)'*(QiShort(:,:,i)-H)));
-        [H,G] = computeHG(QiShort(:,:,i),p);
-        disiShorth(i) =  sqrt(0.5*(trace(H'*H)));
+        disp ("Got here")
+        eig(Qi(:,:,i))
+        [H,G] = computeHG(Qi(:,:,i),p);
+        dis(i) =  sqrt(0.5*(trace(H'*H)));
     end
-    
-    
-   
-    disiShorth
-    disih
+    dis
+    sum(dis)
 end
 
 
@@ -194,4 +179,5 @@ for j = 1:n
     Q(:,j) = v / R(j,j);
 end
 Q(:,1) = Q(:,1)*det(Q); % take Q\in O(n) and force it to be Q\in SO(n)
+det(Q)
 end
