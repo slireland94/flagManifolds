@@ -1,4 +1,4 @@
-% Seth Ireland
+% Seth Ireland and Brian Collery 
 % 9.7.2021
 
 close all
@@ -11,32 +11,57 @@ clc
 % flag manifold) will come later
 
 % what kind of flag do we have?
-p = [1,1,4];
-testRun(p);
+p = [2,2,4];
+testRun(p)
 
-function [H] = testRun(p)
 
+
+function [dis] = testRun(p)
     n = sum(p);
     % get our points in the flag (just representatives right now)
     Q1 = specialOrtho(n);
     Q2 = specialOrtho(n);
     Q = Q1'*Q2;
     [H,G] = computeHG(Q,p);
-    disi = zeros(2^(n-1),1);
-    [Qi] = generateExcessQi(Q,n)
-    % The final change should multiply every column by 1 if
-    % the program works so the check is to see if this is just the 
-    % zero matrix.
-    Q + Qi(:,:,2^(n-1))
-    for i= 1: 2^(n-1)
-        disi(i) = sqrt(0.5*trace(H'*H))
-        
+    % Using the structure of the flag manifold
+    d = length(p);
+    [Qi] = generateQi(Q,p);
+    
+    % desiShort = zeros(2^(d-1),1);
+    dis = zeros(2^(d-1),1);
+    eigenValuesQ = zeros(2^(d-1),n);
+    % Looking at the distance with the flag manifold structure
+    for i= 1: 2^(d-1)
+        eigenValuesQ(i,:) = eig(Qi(:,:,i));
+        eigenValuesQ(i,:)
+        [H,G] = computeHG(Qi(:,:,i),p);
+        dis(i) =  sqrt(0.5*(trace(H'*H)));
     end
-    
-    
+    eigenValuesQ
 end
 
 
+% get representatives of [Q] using cover of flag manifold
+function [QiShort] = generateQi(Q,p)
+    d = length(p);
+    pAlt = altSyntax(p);
+    count_rows = height(Q);
+    count_columns = width(Q);
+    QiShort = zeros(count_rows,count_columns,2^(d-1));
+    i = 1;
+    QiShort(:,:,i) = Q;
+    nchoosek((0:3),3);
+    columns = (1:count_columns);
+
+    for j = 1:floor(d/2)
+        C = nchoosek(pAlt,2*j);
+            for k =1:size(C)
+                i = i+1;
+                QiShort(:,:,i) = Q;
+                QiShort(:,C(k,:),i) = -QiShort(:,C(k,:),i);
+            end
+    end
+end
 
 function [Qi] = generateExcessQi(Q,n)
     % This function generates all possible Qi's rather than good
@@ -60,6 +85,12 @@ function [Qi] = generateExcessQi(Q,n)
     end
 end
 
+function [pAlt] =altSyntax(p)
+    pAlt = p;
+    for i = 2:length(p)
+        pAlt(i) = pAlt(i) + pAlt(i-1);
+    end
+end
 
 
 function [H,G] = computeHG(Q,p)
@@ -76,6 +107,7 @@ function [H,G] = computeHG(Q,p)
         H_hat = logm(Q*expm(G)');
         H = projectToComp(H_hat,p);
         errorM = Q - expm(H)*expm(G); %error matrix
+        % 
         error = sqrt(0.5*trace(errorM'*errorM));
     end
     % distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?

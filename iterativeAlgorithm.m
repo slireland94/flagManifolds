@@ -11,15 +11,13 @@ clc
 % flag manifold) will come later
 
 % what kind of flag do we have?
-p = [2,4,4];
-testRun(p);
+p = [2,2];
+testRun(p)
 
 
 
-function [H] = testRun(p)
-
+function [dis] = testRun(p)
     n = sum(p);
-    
     % get our points in the flag (just representatives right now)
     Q1 = specialOrtho(n);
     Q2 = specialOrtho(n);
@@ -28,21 +26,22 @@ function [H] = testRun(p)
     % Using the structure of the flag manifold
     d = length(p);
     [Qi] = generateQi(Q,p);
+    
     % desiShort = zeros(2^(d-1),1);
     dis = zeros(2^(d-1),1);
-    eigShort = zeros(2^(d-1),n);
+    eigenValuesQ = zeros(2^(d-1),n);
     % Looking at the distance with the flag manifold structure
     for i= 1: 2^(d-1)
-        disp ("Got here")
-        eig(Qi(:,:,i))
+        eigenValuesQ(i,:) = eig(Qi(:,:,i));
+        eigenValuesQ(i,:);
         [H,G] = computeHG(Qi(:,:,i),p);
         dis(i) =  sqrt(0.5*(trace(H'*H)));
     end
-    dis
-    sum(dis)
+    eigenValuesQ;
 end
 
 
+% get representatives of [Q] using cover of flag manifold
 function [QiShort] = generateQi(Q,p)
     d = length(p);
     pAlt = altSyntax(p);
@@ -105,6 +104,7 @@ function [H,G] = computeHG(Q,p)
     while error > tolerance  % tolerance from last to current
         G_hat = logm(expm(H)'*Q);
         G = projectToWP(G_hat,p);
+        eig(Q*expm(G)')
         H_hat = logm(Q*expm(G)');
         H = projectToComp(H_hat,p);
         errorM = Q - expm(H)*expm(G); %error matrix
@@ -179,5 +179,4 @@ for j = 1:n
     Q(:,j) = v / R(j,j);
 end
 Q(:,1) = Q(:,1)*det(Q); % take Q\in O(n) and force it to be Q\in SO(n)
-det(Q)
 end
