@@ -113,6 +113,7 @@ end
 
 function [H,G] = computeHG(Q,p)
     % initialize
+    fileId = fopen('examples.txt','w');
     G0 = blockDiagSkewSym(p);
     H_hat = logm(Q*expm(G0)');
     H = projectToComp(H_hat,p);
@@ -122,11 +123,21 @@ function [H,G] = computeHG(Q,p)
     while error > tolerance  % tolerance from last to current
         if countNegEig(expm(H)'*Q,p) > 0 % if expm(H)'*Q has negative eigenvalues, then let's see it
             expm(H)'*Q
+            writematrix(expm(H)'*Q,'examples.xls');
+            disp('got here');
+            %fprintf(fileId,expm(H)'*Q);
+            %ei = ordeig(expm(H)'*Q)
+            %warns = any(ei == 0)
         end
         G_hat = logm(expm(H)'*Q);
         G = projectToWP(G_hat,p);
         if countNegEig(Q*expm(G)',p) > 0 % if Q*expm(G)' has negative eigenvalues, then let's see it
             Q*expm(G)'
+            writematrix(Q,'examples.xls');
+            %fprintf(fileId,Q*expm(G)');
+            %ei = ordeig(Q*expm(G)')
+            %warns = any(ei == 0)
+            
         end
         H_hat = logm(Q*expm(G)');
         H = projectToComp(H_hat,p);
@@ -136,7 +147,7 @@ function [H,G] = computeHG(Q,p)
     end
     % distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?
     % distance = sqrt(0.5*trace(G'*G)) % ???
-
+    fclose(fileId);
 end
 % Questions:
 % how to compute 'unique singular values' of H
