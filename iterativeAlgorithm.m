@@ -12,29 +12,34 @@ clc
 
 % what kind of flag do we have?
 p = [2,2,2];
-testRun(p);
+testRun(p)
 
-
+% Make the log shew symmetric real.
 
 
 function [dis] = testRun(p)
     n = sum(p);
+    
+    
     % get our points in the flag (just representatives right now)
     Q1 = specialOrtho(n);
     Q2 = specialOrtho(n);
     Q = Q1'*Q2;
     [H,G] = computeHG(Q,p);
+    
+    
     % Using the structure of the flag manifold
     d = length(p);
     [Qi] = generateQi(Q,p);
-    % desiShort = zeros(2^(d-1),1);
     dis = zeros(2^(d-1),1);
     eigenValuesQ = zeros(2^(d-1),n);
+    
+    
     % Looking at the distance with the flag manifold structure
     for i= 1: 2^(d-1)
-        eigenValuesQ(i,:) = eig(Qi(:,:,i));
-        eigenValuesQ(i,:);
         [H,G] = computeHG(Qi(:,:,i),p);
+        disp('difference')
+        Qi(:,:,i) - expm(H)*expm(G)
         dis(i) =  sqrt(0.5*(trace(H'*H)));
     end
     eigenValuesQ;
@@ -113,42 +118,44 @@ end
 
 function [H,G] = computeHG(Q,p)
     % initialize
-    fileId = fopen('examples.txt','w');
+
     G0 = blockDiagSkewSym(p);
     H_hat = logm(Q*expm(G0)');
     H = projectToComp(H_hat,p);
     % run the algorithm
     error = 1;
-    tolerance = 0.01;
+    tolerance = 0.001;
     while error > tolerance  % tolerance from last to current
         if countNegEig(expm(H)'*Q,p) > 0 % if expm(H)'*Q has negative eigenvalues, then let's see it
-            expm(H)'*Q
+            expm(H)'*Q;
+            (expm(H)'*Q)'*expm(H)'*Q;
             writematrix(expm(H)'*Q,'examples.xls');
+            writematrix(p,'pUsed.xls');
             disp('got here');
-            %fprintf(fileId,expm(H)'*Q);
-            %ei = ordeig(expm(H)'*Q)
-            %warns = any(ei == 0)
+            writematrix([1],'decision.xls');
         end
-        G_hat = logm(expm(H)'*Q);
+        G_hat = real(logm(expm(H)'*Q));
         G = projectToWP(G_hat,p);
         if countNegEig(Q*expm(G)',p) > 0 % if Q*expm(G)' has negative eigenvalues, then let's see it
             Q*expm(G)'
+            (Q*expm(G)')*(Q*expm(G)')'
             writematrix(Q,'examples.xls');
-            %fprintf(fileId,Q*expm(G)');
-            %ei = ordeig(Q*expm(G)')
-            %warns = any(ei == 0)
-            
+            writematrix(p,'pUsed.xls');
+            writematrix([2],'decision.xls');
         end
-        H_hat = logm(Q*expm(G)');
+        H_hat = real(logm(Q*expm(G)'));
         H = projectToComp(H_hat,p);
+        % Make the error less than max of max
+        
         errorM = Q - expm(H)*expm(G); %error matrix
         % 
-        error = sqrt(0.5*trace(errorM'*errorM));
+        error = max(max(abs(errorM)));
     end
     % distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?
     % distance = sqrt(0.5*trace(G'*G)) % ???
     fclose(fileId);
 end
+
 % Questions:
 % how to compute 'unique singular values' of H
 % distance = sqrt(lambda_1^2 + lambda_2^2)
@@ -190,15 +197,19 @@ end
 function [B] = blockDiagSkewSym(p)
     B =[];
     for j = 1:length(p)
-        A = skewSym(p(j));
+        A = skewSymRand(p(j));
         B = blkdiag(B,A);
     end
 end
 
 
-function [G0] = skewSym(n)
+function [G0] = skewSymRand(n)
 R = rand(n);
 G0 = R - R';
+end
+
+function [skewM] =skewMatrix(M)
+    skewM = .5(M - M');
 end
 
 

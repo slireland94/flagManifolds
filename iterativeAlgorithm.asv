@@ -11,11 +11,10 @@ clc
 % flag manifold) will come later
 
 % what kind of flag do we have?
-p = [2,2];
-%testRun(p);
+p = [2,2,2];
+testRun(p)
 
-B = rand(sum(p));
-checkNegEig(B)
+% Make the log shew symmetric real.
 
 
 function [dis] = testRun(p)
@@ -33,9 +32,11 @@ function [dis] = testRun(p)
     eigenValuesQ = zeros(2^(d-1),n);
     % Looking at the distance with the flag manifold structure
     for i= 1: 2^(d-1)
-        eigenValuesQ(i,:) = eig(Qi(:,:,i));
-        eigenValuesQ(i,:);
+        % eigenValuesQ(i,:) = eig(Qi(:,:,i));
+        % eigenValuesQ(i,:);
         [H,G] = computeHG(Qi(:,:,i),p);
+        disp('difference')
+        Qi(:,:,i) - expm(H)*expm(G)
         dis(i) =  sqrt(0.5*(trace(H'*H)));
     end
     eigenValuesQ;
@@ -43,14 +44,18 @@ end
 
 
 % check if any eigenvalues of a matrix are negative
-function [TF] = checkNegEig(B,p)
+function [TF] = countNegEig(B,p)
     l = length(B);
-    E = eig(B)
+    E = eig(B);
+    TF = 0;
     for j = 1:l
-        if im(E(j)) == 0 && re(E(j)) < 0
-            TF == 1 % B has a negative eigenvalue
+        if imag(E(j)) == 0 && real(E(j)) < 0
+            TF = TF + 1; % B has a negative eigenvalue
         else
-            TF == 0 % B has no negative eigenva
+            TF = TF; % B has no negative eigenvalues
+        end
+    end
+    
 end
 
     
@@ -110,6 +115,7 @@ end
 
 function [H,G] = computeHG(Q,p)
     % initialize
+    fileId = fopen('examples.txt','w');
     G0 = blockDiagSkewSym(p);
     H_hat = logm(Q*expm(G0)');
     H = projectToComp(H_hat,p);
@@ -117,17 +123,41 @@ function [H,G] = computeHG(Q,p)
     error = 1;
     tolerance = 0.001;
     while error > tolerance  % tolerance from last to current
-        G_hat = logm(expm(H)'*Q);
+        if countNegEig(expm(H)'*Q,p) > 0 % if expm(H)'*Q has negative eigenvalues, then let's see it
+            expm(H)'*Q;
+            (expm(H)'*Q)'*expm(H)'*Q;
+            writematrix(expm(H)'*Q,'examples.xls');
+            writematrix(p,'pUsed.xls');
+            disp('got here');
+            writematrix([1],'decision.xls');
+            %fprintf(fileId,expm(H)'*Q);
+            %ei = ordeig(expm(H)'*Q)
+            %warns = any(ei == 0)
+        end
+        G_hat = real(logm(expm(H)'*Q));
         G = projectToWP(G_hat,p);
-        H_hat = logm(Q*expm(G)');
+        if countNegEig(Q*expm(G)',p) > 0 % if Q*expm(G)' has negative eigenvalues, then let's see it
+            Q*expm(G)'
+            (Q*expm(G)')*(Q*expm(G)')'
+            writematrix(Q,'examples.xls');
+            writematrix(p,'pUsed.xls');
+            writematrix([2],'decision.xls');
+            %fprintf(fileId,Q*expm(G)');
+            %ei = ordeig(Q*expm(G)')
+            %warns = any(ei == 0)
+            
+        end
+        H_hat = real(logm(Q*expm(G)'));
         H = projectToComp(H_hat,p);
+        % Make the error less than max of max
+        
         errorM = Q - expm(H)*expm(G); %error matrix
         % 
-        error = sqrt(0.5*trace(errorM'*errorM));
+        error = max(max(abs(errorM)));
     end
     % distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?
     % distance = sqrt(0.5*trace(G'*G)) % ???
-
+    fclose(fileId);
 end
 % Questions:
 % how to compute 'unique singular values' of H
@@ -170,16 +200,18 @@ end
 function [B] = blockDiagSkewSym(p)
     B =[];
     for j = 1:length(p)
-        A = skewSym(p(j));
+        A = skewSymRand(p(j));
         B = blkdiag(B,A);
     end
 end
 
 
-function [G0] = skewSym(n)
+function [G0] = skewSymRand(n)
 R = rand(n);
 G0 = R - R';
 end
+
+
 
 
 function [Q] = specialOrtho(n)

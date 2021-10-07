@@ -3,15 +3,8 @@
 % we will have to alter that manually. 
 p = readmatrix('pUsed.xls');
 A = readmatrix('examples.xls');
-decide = readmatrix('decision.xls');
-eig(A);
-% Look over the code to see if it is actually orthogonal;
-det(A)
-% Look at the order off projection matrices.
-if (decide == 1)
-    [eigenValues] = piecewiseProjection(p,A);
-end
-eigenValues
+eig(A)
+[eigenValues] = piecewiseProjection(p,A);
 % First way to examine it is to check how its eigenvalues change when we do
 % "piecewise" projection. This is when we do the projection for each step
 % but check its eigenvalues in between and see if we can find a pattern.
