@@ -12,8 +12,9 @@ clc
 
 % what kind of flag do we have?
 p = [2,2,2];
+tic
 testRun(p)
-
+toc
 % Make the log shew symmetric real.
 
 
@@ -38,8 +39,6 @@ function [dis] = testRun(p)
     % Looking at the distance with the flag manifold structure
     for i= 1: 2^(d-1)
         [H,G] = computeHG(Qi(:,:,i),p);
-        disp('difference')
-        Qi(:,:,i) - expm(H)*expm(G)
         dis(i) =  sqrt(0.5*(trace(H'*H)));
     end
     eigenValuesQ;
@@ -118,42 +117,58 @@ end
 
 function [H,G] = computeHG(Q,p)
     % initialize
-
+    origQ = Q;
+    Q
     G0 = blockDiagSkewSym(p);
-    H_hat = logm(Q*expm(G0)');
+    H_hat = logOfMatrix(Q*expm(G0)');
     H = projectToComp(H_hat,p);
     % run the algorithm
     error = 1;
     tolerance = 0.001;
-    while error > tolerance  % tolerance from last to current
+    count=[0,0];
+    while (error > tolerance) && (count(1) <1000)  % tolerance from last to current
+        count(1)=count(1)+1
         if countNegEig(expm(H)'*Q,p) > 0 % if expm(H)'*Q has negative eigenvalues, then let's see it
-            expm(H)'*Q;
-            (expm(H)'*Q)'*expm(H)'*Q;
             writematrix(expm(H)'*Q,'examples.xls');
             writematrix(p,'pUsed.xls');
             disp('got here');
             writematrix([1],'decision.xls');
+            count(2)=count(2)+1
         end
-        G_hat = real(logm(expm(H)'*Q));
+        G_hat = logOfMatrix(expm(H)'*Q);
+        if ( (max(max(abs(expm(G_hat)-expm(H)'*Q)))) > .000001 )
+            G_hat
+            expm(H)'*Q
+            disp('Got Here')
+            disp(max(max(abs(expm(G_hat)-expm(H)'*Q))))
+            pause
+        end
         G = projectToWP(G_hat,p);
         if countNegEig(Q*expm(G)',p) > 0 % if Q*expm(G)' has negative eigenvalues, then let's see it
-            Q*expm(G)'
-            (Q*expm(G)')*(Q*expm(G)')'
             writematrix(Q,'examples.xls');
             writematrix(p,'pUsed.xls');
             writematrix([2],'decision.xls');
         end
-        H_hat = real(logm(Q*expm(G)'));
+        H_hat = logOfMatrix(Q*expm(G)');
+        if ( (max(max(abs(expm(H_hat)-Q*expm(G)')))) > .000001 )
+            H_hat
+            disp('got here')
+            disp(max(max(abs(expm(H_hat)-Q*expm(G)'))))
+            Q*expm(G)'
+            pause
+        end
         H = projectToComp(H_hat,p);
         % Make the error less than max of max
         
-        errorM = Q - expm(H)*expm(G); %error matrix
-        % 
+        errorM = Q - expm(H)*expm(G); %error matrix 
         error = max(max(abs(errorM)));
     end
-    % distance = sqrt(0.5*trace(H'*H)) % distance between Q1 and Q2 ?
-    % distance = sqrt(0.5*trace(G'*G)) % ???
-    fclose(fileId);
+    if (count(1) == 1000)
+        disp('Found a Q')
+        writematrix(origQ,'examples.xls');
+        writematrix(p,'pUsed.xls');
+    end
+    
 end
 
 % Questions:
@@ -202,6 +217,11 @@ function [B] = blockDiagSkewSym(p)
     end
 end
 
+function [mat] = logOfMatrix(M)
+    mat = logm(M);
+    mat = skewMatrix(mat);
+    
+end
 
 function [G0] = skewSymRand(n)
 R = rand(n);
@@ -209,7 +229,7 @@ G0 = R - R';
 end
 
 function [skewM] =skewMatrix(M)
-    skewM = .5(M - M');
+    skewM = .5*(M - M');
 end
 
 
