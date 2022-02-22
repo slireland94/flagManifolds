@@ -11,7 +11,7 @@ clc
 % flag manifold) will come later
 
 % what kind of flag do we have?
-p = [2,2,2];
+p = [30,30];
 tic
 testRun(p)
 toc
@@ -23,8 +23,10 @@ function [dis] = testRun(p)
     
     
     % get our points in the flag (just representatives right now)
-    Q1 = specialOrtho(n);
-    Q2 = specialOrtho(n);
+    Q1 = readmatrix('Q1.xls');
+    Q2 = readmatrix('Q2.xls');
+%     Q1 = specialOrtho(n)
+%     Q2 = specialOrtho(n)
     Q = Q1'*Q2;
     [H,G] = computeHG(Q,p);
     
@@ -126,7 +128,7 @@ function [H,G] = computeHG(Q,p)
     error = 1;
     tolerance = 0.001;
     count=[0,0];
-    while (error > tolerance) && (count(1) <1000)  % tolerance from last to current
+    while (error > tolerance) && (count(1) <10000)  % tolerance from last to current
         count(1)=count(1)+1
         if countNegEig(expm(H)'*Q,p) > 0 % if expm(H)'*Q has negative eigenvalues, then let's see it
             writematrix(expm(H)'*Q,'examples.xls');
