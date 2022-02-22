@@ -11,15 +11,15 @@ clc
 
 % what kind of Grassmannian do we have?
 p = [2,2,6];
-
-
+testCases = 4;
+% Forgot the bar part
 G1Bar = eye(10);
 G2Bar = eye(10);
 
-G2Bar(2,:) = 3*G1Bar(2,:) + 3*G1Bar(3,:);
-G2Bar(2,:) = G2Bar(2,:)/sqrt(18)
-G2Bar(3,:) = 3*G1Bar(2,:) - 3*G1Bar(3,:);
-G2Bar(3,:) = G2Bar(3,:)/sqrt(18)
+check =specialOrtho(testCases);
+G2Bar(2:(1+testCases),2:(1+testCases)) = check;
+G1Bar(2:(1+testCases),2:(1+testCases)) = specialOrtho(testCases);
+[G1Bar,G2Bar] =barMatrix(G1Bar,G2Bar,p)
 tic;
 [G,A] = AltTestRun(p,G1Bar,G2Bar);
 
@@ -158,4 +158,18 @@ function [pAlt] =altSyntax(p)
         pAlt(i) = pAlt(i) + pAlt(i-1);
     end
 end
-
+function [Q] = specialOrtho(n)
+A = rand(n);
+R = zeros(n);
+% implement Gram-Schmidt process to get a 'random' element of O(n)
+for j = 1:n
+    v = A(:,j);
+    for i = 1:j-1
+        R(i,j) = Q(:,i)' * A(:,j);
+        v = v - R(i,j) * Q(:,i);
+    end
+    R(j,j) = norm(v);
+    Q(:,j) = v / R(j,j);
+end
+Q(:,1) = Q(:,1)*det(Q); % take Q\in O(n) and force it to be Q\in SO(n)
+end
