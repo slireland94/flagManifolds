@@ -10,11 +10,11 @@ clc
 % to try do it on a flag in future. 
 
 % what kind of Grassmannian do we have?
-p = [2,2,6];
+p = [2,3,6];
 testCases = 4;
 % Forgot the bar part
-G1Bar = eye(10);
-G2Bar = eye(10);
+G1Bar = eye(11);
+G2Bar = eye(11);
 
 check =specialOrtho(testCases);
 G2Bar(2:(1+testCases),2:(1+testCases)) = check;

@@ -11,7 +11,7 @@ clc
 % flag manifold) will come later
 
 % what kind of flag do we have?
-p = [30,30];
+p = [4,4];
 tic
 testRun(p)
 toc

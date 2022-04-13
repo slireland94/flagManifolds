@@ -10,9 +10,10 @@ clc
 % to try do it on a flag in future. 
 
 % what kind of Grassmannian do we have?
-p = [1,1,2,3];
+p = [2,2,2];
 pAlt = [0 altSyntax(p)];
-[G,A,G1Bar,G2Bar]=testRun(p);
+%[G,A,G1Bar,G2Bar]=testRun(p);
+[G1,G2,G]=AlttestRun(p);
 tic
 % testRun(p)
 
@@ -46,6 +47,81 @@ function [G,A,G1Bar,G2Bar] = testRun(p)
     
 end
 
+
+function [G1,G2,G] = AlttestRun(p)
+    l = length(p);
+    pAlt = [ 0 altSyntax(p)];
+    n = sum(p);
+    m = sum(p(1:l-1));
+    % get our points in the Grassmannian (just representatives right now)
+    G1 = Grassmannian(p);
+    G2 = Grassmannian(p);
+
+    % Change the basis for each vector until they are in principal vector
+    % format for each G
+
+    [G1,G2] = changeBasisRep(G1,G2,p);
+
+    % Now we will get the complement of each partition as if each section
+    % was a Grassmannian.
+
+    [GrassmanComp1,GrassmanComp2] = ComplementVectorSet(G1,G2,p);
+
+    % Check that they are in the complement space and the the principle
+    % angles of the complements are equal.
+    for(i=1:m)
+        G1(:,i)'*GrassmanComp1(:,i)
+        G2(:,i)'*GrassmanComp2(:,i)
+        acos(G1(:,i)'*G2(:,i)) -acos(GrassmanComp1(:,i)'*GrassmanComp2(:,i)) 
+        i
+    end
+
+    % Now add the complement space to the Flags. Making sure the
+    % complements are also done through SVD. Not sure if that is necessary?
+    [G1,G2] = flagComplement(G1,G2,p);
+
+    % Create the new G matrix.
+    G = zeros(n,n);
+    for i=1:n
+        G(i,i)= G1(:,i)'*G2(:,i);
+    end
+    % Here we will create the off diagonal terms
+
+    % First i will try to create an individual term and then generalise it.
+    G1(3,:)'
+    GrassmanComp2(1,:)
+    G2(1,:)
+    G(3,1) = (G1(:,3)'*GrassmanComp1(:,1))*(G1(:,3)'*G2(:,1))
+    for i=1:l
+        
+        for k=pAlt(i)+1:pAlt(i+1)
+            % When j<i, we are above the diagonal so we need to use the tilde
+            % b s
+            % Here we will get the row entry
+            for j=1:pAlt(i)
+                G(k,j) = (G1(:,k)'*GrassmanComp1(:,j))*(G1(:,k)'*G2(:,j));
+            end
+            
+
+            % When j>i, we are below the diagonal so we need to use the tilde
+            % a s
+            for j =pAlt(i+1)+1:pAlt(l+1)
+                G(k,j) = (G2(:,k)'*GrassmanComp2(:,j))*(G1(:,k)'*G2(:,j));
+
+            end
+        end
+
+    end
+end
+
+function [G1,G2] = flagComplement(G1,G2,p)
+    G1Comp = ComplementSpace(G1,p);
+    G2Comp = ComplementSpace(G2,p);
+    [U,S,V] = svd(G1Comp'*G2Comp);
+    G1 = [G1 G1Comp*U];
+    G2 = [G2 G2Comp*V];
+end
+
 function [GThick] = Thicken(G,p)
     [WComp] = ComplementSpace(G, p);
     [GThick] = Fuse(G,WComp);
@@ -60,8 +136,7 @@ function [G1Bar,G2Bar] =barMatrix(G1Bar,G2Bar,p)
     % matlab. This is more of a coding issue than a math issue.
 
     % We will bar the first section by itself
-    G1 = G1Bar;
-    G2 = G2Bar;
+
     G1Slice = G1Bar(:,1:p(1));
     G2Slice = G2Bar(:,1:p(1));
     
@@ -76,8 +151,6 @@ function [G1Bar,G2Bar] =barMatrix(G1Bar,G2Bar,p)
         G1Bar(:,(pAlt(i)+1):(pAlt(i+1))) = G1Slice*Uc;
         G2Bar(:,(pAlt(i)+1):(pAlt(i+1))) = G2Slice*Vc;
     end
-    U = G1'*G1Bar
-    V = G2'*G2Bar
 end
 
 
@@ -144,6 +217,44 @@ function [pAlt] =altSyntax(p)
     end
 end
 
-function [compV] = complementVector(v1,tildev1,angle)
-    compV = (v1 - tildev1*cos(angle))/sin(angle);
+function [compV] = complementVector(v1,v2cos,angle)
+    compV = (v1 - v2cos*cos(angle))/sin(angle);
+end
+
+
+function [G1,G2] = changeBasisRep(G1,G2,p)
+
+    % We take l - 1 as we have not created the complement space and that is
+    % included in out p
+    pAlt =[0 altSyntax(p)];
+    l = length(pAlt)-1;
+    % We need to add the bar to the first section in a different manner
+    % than the other sections as there is no zeroth element in a vector in
+    % matlab. This is more of a coding issue than a math issue.
+
+
+    for i =1:(l-1)
+        G1Slice = G1(:,(pAlt(i)+1):(pAlt(i+1)));
+        G2Slice = G2(:,(pAlt(i)+1):(pAlt(i+1)));
+        [Uc,S,Vc ] = svd(G1Slice'*G2Slice);
+        G1(:,(pAlt(i)+1):(pAlt(i+1))) = G1Slice*Uc;
+        G2(:,(pAlt(i)+1):(pAlt(i+1))) = G2Slice*Vc;
+    end
+end
+
+function [G1CompTilde,G2CompTilde] = ComplementVectorSet(G1,G2,p)
+    l = length(p);
+    m= sum(p(1:(l-1)));
+    n = sum(p);
+    G1CompTilde = zeros(n,m);
+    G2CompTilde = zeros(n,m);
+    for i=1:m
+        if( acos(G1(:,i)'*G2(:,i)) <.0001)
+            G1CompTilde(:,i) = G2(:,i);
+            G2CompTilde(:,i) = G1(:,i);
+        else
+            G1CompTilde(:,i) = complementVector(G2(:,i),G1(:,i),acos(G1(:,i)'*G2(:,i)));
+            G2CompTilde(:,i) = complementVector(G1(:,i),G2(:,i),-acos(G1(:,i)'*G2(:,i)));
+        end
+    end
 end

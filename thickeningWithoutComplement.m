@@ -10,58 +10,36 @@ clc
 % to try do it on a flag in future. 
 
 % what kind of Grassmannian do we have?
-p = [2,2,6];
+p = [4,4];
+[G,A,G1Bar,G2Bar]=testRun(p);
 
-
-G1Bar = eye(10);
-G2Bar = eye(10);
-
-G2Bar(2,:) = 2*G1Bar(2,:) + 3*G1Bar(3,:);
-
-G2Bar(3,:) = 2*G1Bar(2,:) + 3*G1Bar(3,:);
-G2Bar(3,:) = G2Bar(3,:)/sqrt(4+9)
-tic
-[G,A] = AltTestRun(p,G1Bar,G2Bar);
-
-toc;
 % testRun(p)
-% in the Grassmannian case a_1 = sin^{-1}b_1
 
 
-function [G,A,G1Bar,G2Bar] = AltTestRun(p,G1Bar,G2Bar)
+function [G,A,G1Bar,G2Bar] = testRun(p)
     n = sum(p);
     % get our points in the Grassmannian (just representatives right now)
+    G1 = Grassmannian(p);
+    G2 = Grassmannian(p);
+
     % Thicken the bar of each grassmannian
     % respectively. I.e multiply them by their
-    % SVD vector decomp respectively and then find their complement.
-    G = createExpM(G1Bar,G2Bar,p,n);
-    if(det(G) < 0.5)
-        G(:,1) = -G(:,1);
-        A = logm(G);
-    else
-        A = logm(G);
+    % SVD vector decomp respectively.
+    [G1Bar,G2Bar] = barMatrix(G1,G2,p);
+    G = G1Bar'*G2Bar;
+    if (det(G) < 0)
+        G2Bar(:,1) = G2Bar(:,1)*(-1);
+        G = G1Bar'*G2Bar;
     end
-end
+    D = det(G)
+    A = logm(G);
 
-function [G] =createExpM(G1Bar,G2Bar,p,n)
-l = length(p);
-G = zeros(n);
-for i=1:n
-    G(i,i) = G1Bar(:,i)'*G2Bar(:,i);
-end
-if( l > 2) %If SVD breaks down.
-    pAlt = [0 altSyntax(p)];
-    % Where it breaks down.
-    for i=1:(l-1)
-        % choice of A's
-        for j = (pAlt(i)+1):pAlt(i+1)
-            for k = (pAlt(i+1)+1):pAlt(l+1)
-               G(j,k) = G1Bar(:,j)'*G2Bar(:,k);
-               G(k,j) = G1Bar(:,k)'*G2Bar(:,j);
-            end
-        end
+    t = 0:0.01:1;
+    for i=1:length(t)
+        expA =expm(A*(t(i)));
+        (G1Bar*expm(A*(t(i))))'*(G1Bar*expm(A*(t(i))));
     end
-end
+    
 end
 
 function [GThick] = Thicken(G,p)
@@ -78,7 +56,8 @@ function [G1Bar,G2Bar] =barMatrix(G1Bar,G2Bar,p)
     % matlab. This is more of a coding issue than a math issue.
 
     % We will bar the first section by itself
-
+    G = G1Bar;
+    G2 = G2Bar;
     G1Slice = G1Bar(:,1:p(1));
     G2Slice = G2Bar(:,1:p(1));
     
@@ -86,13 +65,16 @@ function [G1Bar,G2Bar] =barMatrix(G1Bar,G2Bar,p)
     G1Bar(:,1:p(1)) = G1Slice*U;
     G2Bar(:,1:p(1)) = G2Slice*V;
 
-    for i =1:(l-1)
+    for i =1:(l-2)
         G1Slice = G1Bar(:,(pAlt(i)+1):(pAlt(i+1)));
         G2Slice = G2Bar(:,(pAlt(i)+1):(pAlt(i+1)));
         [Uc,S,Vc ] = svd(G1Slice'*G2Slice);
         G1Bar(:,(pAlt(i)+1):(pAlt(i+1))) = G1Slice*Uc;
         G2Bar(:,(pAlt(i)+1):(pAlt(i+1))) = G2Slice*Vc;
+        i+1
     end
+    U = G'*G1Bar
+    V = G2'*G2Bar
 end
 
 
