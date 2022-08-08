@@ -11,55 +11,54 @@ clc
 % if k>n, subspace becomes dependent on circshift function, Matlab doesn't compute daub(k,1) for k>49
 n = 14; % computations will take place on Gr(n,2n)
 k = [1,5]; % the 2 k values we want to measure distance between
-p = [n,n];
+p = [n/2,n/2,n];
 t = 0:0.01:1;
 % makeD2k generates a representative for D_{2k} as a point on Gr(n,2n)
 %makeD2k(k,n)
 G1 = makeD2k(k(1),n);
-
 G2 = makeD2k(k(2),n);
+G1 = flagDaubechies(G1,p);
+G2 = flagDaubechies(G2,p);
 [A,G1Bar,G2Bar] = geodesicMat(G1,G2,p);
 I= imread('MNISTExample.png');
 
 Im = im2double(I);
 ImPlots = zeros(28,28,length(t));
+ImPlotsFlag = zeros(28,28,length(t));
+ImPlotsRand = zeros(28,28,length(t));
 B = specialOrtho(28);
-B = B(:,1:14);
-imshow(imresize(I,10))
-
+Blog = logm(B);
 for i=1:9
     
     expA =(G1Bar * expm(A*(t(i))));
     expA = expA(:,(1:14));
+    expB = (G1Bar * expm(Blog*(t(i))));
+    expB = expB(:,(1:14));
+    projB = expB*expB';
     projA = expA*expA';
+    expFlag = expA(:,1:7);
+    projFlag = expFlag*expFlag';
     ImPlots(:,:,i) = projA*Im*projA;
-    %imshow(imresize(ImPlots(:,:,i),10));
-    frameName = strcat('frame00',int2str(i),'.png');
-    saveas(imshow(imresize(ImPlots(:,:,i),13)),frameName);
+    ImPlotsFlag(:,:,i) = projFlag*Im*projFlag;
+    ImPlotsRand(:,:,i) = projB*Im*projB;
+%     imshow(imresize(ImPlots(:,:,i),1))
 end
-for i=10:(length(t)-2)
+for i=10:(length(t)-1)
     
     expA =(G1Bar * expm(A*(t(i))));
     expA = expA(:,(1:14));
+    expB = (G1Bar * expm(Blog*(t(i))));
+    expB = expB(:,(1:14));
+    projB = expB*expB';
     projA = expA*expA';
+    expFlag = expA(:,1:7);
+    projFlag = expFlag*expFlag';
     ImPlots(:,:,i) = projA*Im*projA;
-    %imshow(imresize(ImPlots(:,:,i),10));
-    frameName = strcat('frame0',int2str(i),'.png')
-    saveas(imshow(imresize(ImPlots(:,:,i),13)),frameName);
-end
-for i=(length(t)-1):(length(t))
-    
-    expA =(G1Bar * expm(A*(t(i))));
-    expA = expA(:,(1:14));
-    projA = expA*expA';
-    ImPlots(:,:,i) = projA*Im*projA;
-    %imshow(imresize(ImPlots(:,:,i),10));
-    frameName = strcat('frame',int2str(i),'.png')
-    saveas(imshow(imresize(ImPlots(:,:,i),13)),frameName);
+    ImPlotsFlag(:,:,i) = projFlag*Im*projFlag;
+    ImPlotsRand(:,:,i) = projB*Im*projB;
+%     imshow(imresize(ImPlots(:,:,i),1))
 end
 
-
-imshow(imresize((B*B'*Im*B*B'),10))
 
 function [Q] = makeD2k(k,n)
     D = dauboMat(k,n);
@@ -93,24 +92,26 @@ end
 
 function [A,G1Bar,G2Bar] = geodesicMat(G1,G2,p)
     n = sum(p);
-    % Get the SVD decom of their product.
-    B = G1'*G2;
-    [U,S,V] = svd(B);
     % Thicken the bar of each grassmannian
     % respectively. I.e multiply them by their
     % SVD vector decomp respectively and then find their complement.
     G1Bar = Thicken(G1,p);
     G2Bar = Thicken(G2,p);
     [G1Bar,G2Bar] = barMatrix(G1Bar,G2Bar,p);
-    G = G1Bar'*G2Bar;
-    if (det(G) < 0)
-        G2Bar(:,1) = G2Bar(:,1)*(-1);
-        G = G1Bar'*G2Bar;
-    end
-    A = logm(G);
+    Q = G1Bar'*G2Bar;
+    [A,G] = computeHG(Q,p);
 end
 
-
+function [G] = flagDaubechies(G,p)
+    tempG = G;
+    sep = p(1);
+    for i=1:p(1)
+        G(:,i) = (1/sqrt(2))*(tempG(:,2*(i-1) + 1) + tempG(:,2*(i-1) + 2));
+    end
+    for i=1:p(1)
+        G(:,i+sep) = (1/sqrt(2))*(tempG(:,2*(i-1) + 1) - tempG(:,2*(i-1) + 2));
+    end
+end
 
 function [GThick] = Thicken(G,p)
     [WComp] = ComplementSpace(G, p);
@@ -205,6 +206,135 @@ function [pAlt] =altSyntax(p)
     for i = 2:length(p)
         pAlt(i) = pAlt(i) + pAlt(i-1);
     end
+end
+
+
+
+function [H,G,count] = computeHG(Q,p)
+    % initialize
+    origQ = Q;
+    countMax = 50000;
+    G0 = blockDiagSkewSym(p);
+    H_hat = logOfMatrix(Q*expm(G0)');
+    H = projectToComp(H_hat,p);
+    % run the algorithm
+    error = 1;
+    tolerance = 0.01;
+    count=[0,0];
+    while (error > tolerance) && (count(1) <countMax)  % tolerance from last to current
+        count(1)=count(1)+1;
+        if countNegEig(expm(H)'*Q,p) > 0 % if expm(H)'*Q has negative eigenvalues, then let's see it
+            writematrix(expm(H)'*Q,'examples.xls');
+            writematrix(p,'pUsed.xls');
+            disp('got here');
+            writematrix([1],'decision.xls');
+            count(2)=count(2)+1
+        end
+        G_hat = logOfMatrix(expm(H)'*Q);
+        if ( (max(max(abs(expm(G_hat)-expm(H)'*Q)))) > .000001 )
+            G_hat
+            expm(H)'*Q
+            disp('Got Here')
+            disp(max(max(abs(expm(G_hat)-expm(H)'*Q))))
+            pause
+        end
+        G = projectToWP(G_hat,p);
+        if countNegEig(Q*expm(G)',p) > 0 % if Q*expm(G)' has negative eigenvalues, then let's see it
+            writematrix(Q,'examples.xls');
+            writematrix(p,'pUsed.xls');
+            writematrix([2],'decision.xls');
+        end
+        H_hat = logOfMatrix(Q*expm(G)');
+        if ( (max(max(abs(expm(H_hat)-Q*expm(G)')))) > .000001 )
+            H_hat
+            disp('got here')
+            disp(max(max(abs(expm(H_hat)-Q*expm(G)'))))
+            Q*expm(G)'
+            pause
+        end
+        H = projectToComp(H_hat,p);
+        % Make the error less than max of max
+        
+        errorM = Q - expm(H)*expm(G); %error matrix 
+        error = max(max(abs(errorM)));
+    end
+    if (count(1) == 1000)
+        disp('Found a Q')
+        writematrix(origQ,'examples.xls');
+        writematrix(p,'pUsed.xls');
+    end
+    if (count(1) == countMax)
+        disp('Reached max iterations.')
+    end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [G] = projectToWP (G_hat,p)
+    A = zeros(sum(p));
+    topLeftCorner=1;
+    for j = 1:length(p)
+        blockSize = p(j);
+        for k = 0:blockSize-1
+            for l = 0:blockSize-1
+                A(topLeftCorner+k,topLeftCorner+l) = G_hat(topLeftCorner+k,topLeftCorner+l);
+            end
+        end 
+        topLeftCorner = p(j) + topLeftCorner;
+    end
+    G = A;
+end
+
+function [H] = projectToComp (H_hat,p)
+    topLeftCorner=1;
+    for j = 1:length(p)
+        blockSize = p(j);
+        for k = 0:blockSize-1
+            for l = 0:blockSize-1
+                H_hat(topLeftCorner+k,topLeftCorner+l)=0;
+            end
+        end 
+        topLeftCorner = p(j) + topLeftCorner;
+    end
+    H = H_hat;
+end
+
+function [B] = blockDiagSkewSym(p)
+    B =[];
+    for j = 1:length(p)
+        A = skewSymRand(p(j));
+        B = blkdiag(B,A);
+    end
+end
+
+function [mat] = logOfMatrix(M)
+    mat = logm(M);
+    mat = skewMatrix(mat);
+    
+end
+
+function [G0] = skewSymRand(n)
+R = rand(n);
+G0 = R - R';
+end
+
+function [skewM] =skewMatrix(M)
+    skewM = .5*(M - M');
+end
+
+
+
+% check if any eigenvalues of a matrix are negative
+function [TF] = countNegEig(B,p)
+    l = length(B);
+    E = eig(B);
+    TF = 0;
+    for j = 1:l
+        if imag(E(j)) == 0 && real(E(j)) < 0
+            TF = TF + 1; % B has a negative eigenvalue
+        else
+            TF = TF; % B has no negative eigenvalues
+        end
+    end 
 end
 
 function [Q] = specialOrtho(n)

@@ -76,8 +76,8 @@ function [G1Bar,G2Bar] =barMatrix(G1Bar,G2Bar,p)
         G1Bar(:,(pAlt(i)+1):(pAlt(i+1))) = G1Slice*Uc;
         G2Bar(:,(pAlt(i)+1):(pAlt(i+1))) = G2Slice*Vc;
     end
-    U = G1'*G1Bar
-    V = G2'*G2Bar
+    U = G1'*G1Bar;
+    V = G2'*G2Bar;
 end
 
 

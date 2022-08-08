@@ -11,26 +11,27 @@ clc
 % flag manifold) will come later
 
 % what kind of flag do we have?
-p = [4,4];
+p = [3,3,3];
 tic
-testRun(p)
+[dis,H,Qi,compare]=testRun(p);
+[M,I] = min(dis);
 toc
 % Make the log shew symmetric real.
 
 
-function [dis] = testRun(p)
+function [dis,tangents,Qi,compare] = testRun(p)
     n = sum(p);
-    
+    d = length(p);
     
     % get our points in the flag (just representatives right now)
-    Q1 = readmatrix('Q1.xls');
-    Q2 = readmatrix('Q2.xls');
+    Q1 = eye(n);
+    Q2 = specialOrtho(n);
 %     Q1 = specialOrtho(n)
 %     Q2 = specialOrtho(n)
     Q = Q1'*Q2;
     [H,G] = computeHG(Q,p);
-    
-    
+    tangents = zeros(n,n,2^(d-1));
+    compare = zeros(n,n,2^(d-1));
     % Using the structure of the flag manifold
     d = length(p);
     [Qi] = generateQi(Q,p);
@@ -42,6 +43,8 @@ function [dis] = testRun(p)
     for i= 1: 2^(d-1)
         [H,G] = computeHG(Qi(:,:,i),p);
         dis(i) =  sqrt(0.5*(trace(H'*H)));
+        tangents(:,:,i)= H;
+        compare(:,:,i) = Qi(:,:,i)'*expm(H);
     end
     eigenValuesQ;
 end
@@ -58,8 +61,7 @@ function [TF] = countNegEig(B,p)
         else
             TF = TF; % B has no negative eigenvalues
         end
-    end
-    
+    end 
 end
 
     
@@ -75,7 +77,6 @@ function [QiShort] = generateQi(Q,p)
     i = 1;
     QiShort(:,:,i) = Q;
     nchoosek((0:3),3);
-    columns = (1:count_columns);
 
     for j = 1:floor(d/2)
         C = nchoosek(pAlt,2*j);
@@ -120,16 +121,15 @@ end
 function [H,G] = computeHG(Q,p)
     % initialize
     origQ = Q;
-    Q
     G0 = blockDiagSkewSym(p);
     H_hat = logOfMatrix(Q*expm(G0)');
     H = projectToComp(H_hat,p);
     % run the algorithm
     error = 1;
-    tolerance = 0.001;
+    tolerance = 0.0001;
     count=[0,0];
     while (error > tolerance) && (count(1) <10000)  % tolerance from last to current
-        count(1)=count(1)+1
+        count(1)=count(1)+1;
         if countNegEig(expm(H)'*Q,p) > 0 % if expm(H)'*Q has negative eigenvalues, then let's see it
             writematrix(expm(H)'*Q,'examples.xls');
             writematrix(p,'pUsed.xls');

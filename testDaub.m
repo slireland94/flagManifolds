@@ -9,10 +9,10 @@ clc
 
 
 % if k>n, subspace becomes dependent on circshift function, Matlab doesn't compute daub(k,1) for k>49
-n = 14; % computations will take place on Gr(n,2n)
-k = [1,5]; % the 2 k values we want to measure distance between
+n = 4; % computations will take place on Gr(n,2n)
+k = [1,2]; % the 2 k values we want to measure distance between
 p = [n,n];
-t = 0:0.01:1;
+t = 0:0.01:5;
 % makeD2k generates a representative for D_{2k} as a point on Gr(n,2n)
 %makeD2k(k,n)
 G1 = makeD2k(k(1),n);
@@ -22,44 +22,18 @@ G2 = makeD2k(k(2),n);
 I= imread('MNISTExample.png');
 
 Im = im2double(I);
-ImPlots = zeros(28,28,length(t));
-B = specialOrtho(28);
-B = B(:,1:14);
-imshow(imresize(I,10))
-
-for i=1:9
+ImPlots = zeros(2*n,2*n,length(t));
+B = rand(28,14);
+for i=1:length(t)
     
     expA =(G1Bar * expm(A*(t(i))));
-    expA = expA(:,(1:14));
+    expA = expA(:,(1:n));
     projA = expA*expA';
-    ImPlots(:,:,i) = projA*Im*projA;
-    %imshow(imresize(ImPlots(:,:,i),10));
-    frameName = strcat('frame00',int2str(i),'.png');
-    saveas(imshow(imresize(ImPlots(:,:,i),13)),frameName);
-end
-for i=10:(length(t)-2)
-    
-    expA =(G1Bar * expm(A*(t(i))));
-    expA = expA(:,(1:14));
-    projA = expA*expA';
-    ImPlots(:,:,i) = projA*Im*projA;
-    %imshow(imresize(ImPlots(:,:,i),10));
-    frameName = strcat('frame0',int2str(i),'.png')
-    saveas(imshow(imresize(ImPlots(:,:,i),13)),frameName);
-end
-for i=(length(t)-1):(length(t))
-    
-    expA =(G1Bar * expm(A*(t(i))));
-    expA = expA(:,(1:14));
-    projA = expA*expA';
-    ImPlots(:,:,i) = projA*Im*projA;
-    %imshow(imresize(ImPlots(:,:,i),10));
-    frameName = strcat('frame',int2str(i),'.png')
-    saveas(imshow(imresize(ImPlots(:,:,i),13)),frameName);
+%     ImPlots(:,:,i) = projA*Im*projA;
+%     imshow(imresize(ImPlots(:,:,i),1))
 end
 
 
-imshow(imresize((B*B'*Im*B*B'),10))
 
 function [Q] = makeD2k(k,n)
     D = dauboMat(k,n);
@@ -206,20 +180,3 @@ function [pAlt] =altSyntax(p)
         pAlt(i) = pAlt(i) + pAlt(i-1);
     end
 end
-
-function [Q] = specialOrtho(n)
-A = rand(n);
-R = zeros(n);
-% implement Gram-Schmidt process to get a 'random' element of O(n)
-for j = 1:n
-    v = A(:,j);
-    for i = 1:j-1
-        R(i,j) = Q(:,i)' * A(:,j);
-        v = v - R(i,j) * Q(:,i);
-    end
-    R(j,j) = norm(v);
-    Q(:,j) = v / R(j,j);
-end
-Q(:,1) = Q(:,1)*det(Q); % take Q\in O(n) and force it to be Q\in SO(n)
-end
-
